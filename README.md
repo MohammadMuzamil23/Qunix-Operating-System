@@ -56,6 +56,16 @@ rustup component add rust-src
 QEMU_MEMORY=2G QEMU_CPUS=4 ./build.sh run
 ```
 
+## Documentation
+
+Comprehensive documentation is available in the `doc/` directory:
+
+- **[Overview](doc/overview.md)** — High-level project description and features
+- **[Architecture](doc/architecture.md)** — Detailed kernel and system architecture
+- **[Building](doc/building.md)** — Build system and compilation guide
+- **[User Guide](doc/user_guide.md)** — Usage instructions and system administration
+- **[Developer Guide](doc/developer_guide.md)** — Contributing and development information
+
 ## Build Requirements
 
 | Tool | Version | Purpose |
@@ -98,6 +108,18 @@ qunix/
 ├── SETUP.sh         # Dependency installer
 └── README.md        # This file
 ```
+
+## Recent Changes
+
+### Initial Release (v0.2)
+- Complete kernel implementation with full process model
+- 70+ userland utilities including modern shell (qsh)
+- Multiple filesystem support (ext4, FAT32, tmpfs, devfs, procfs)
+- Networking stack with TCP/UDP
+- Plugin system for loadable kernel modules
+- Security features: namespaces, memory tagging, seccomp
+- Advanced IPC: pipes, shared memory, futexes
+- Comprehensive documentation added
 *Please Note that the project structure info may be not updated*
 
 ## Kernel Architecture

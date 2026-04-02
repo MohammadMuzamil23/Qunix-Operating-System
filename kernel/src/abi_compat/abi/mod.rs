@@ -105,11 +105,11 @@ pub fn handle_virtual_fs_path(path: &str) -> Option<alloc::vec::Vec<u8>> {
 
 const OS_RELEASE: &[u8] = b"\
 NAME=\"Qunix\"\n\
-VERSION=\"0.1.0\"\n\
+VERSION=\"0.2.0\"\n\
 ID=qunix\n\
 ID_LIKE=linux\n\
-PRETTY_NAME=\"Qunix 0.1.0\"\n\
-VERSION_ID=\"0.1\"\n\
+PRETTY_NAME=\"Qunix 0.2.0\"\n\
+VERSION_ID=\"0.2\"\n\
 HOME_URL=\"https://qunix.dev\"\n\
 ";
 

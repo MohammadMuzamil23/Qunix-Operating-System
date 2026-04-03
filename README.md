@@ -199,4 +199,4 @@ send_signal(pid, sig)
 
 ## License
 
-MIT
+Qunix Operating System is licensed under the terms of MIT licence.

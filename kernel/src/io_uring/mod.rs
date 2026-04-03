@@ -254,10 +254,10 @@ fn execute_sqe(sqe: &IoUringSqe) -> i32 {
     let off  = sqe.off_or_addr2;
     match sqe.opcode {
         IORING_OP_NOP           => 0,
-        IORING_OP_READ          => { let s=unsafe{core::slice::from_raw_parts_mut(buf as*mut u8,len)}; crate::process::with_current(|p|p.get_fd(fd as u32)).flatten().and_then(|f|crate::vfs::read_fd(&f,s.as_mut_ptr(),s.len()).ok().map(|n|n as i32)).unwrap_or(-9) }
-        IORING_OP_WRITE         => { let s=unsafe{core::slice::from_raw_parts(buf as*const u8,len)}; crate::process::with_current(|p|p.get_fd(fd as u32)).flatten().and_then(|f|crate::vfs::write_fd(&f,s.as_ptr(),s.len()).ok().map(|n|n as i32)).unwrap_or(-9) }
-        IORING_OP_READ_FIXED    => { let s=unsafe{core::slice::from_raw_parts_mut(buf as*mut u8,len)}; crate::process::with_current(|p|p.get_fd(fd as u32)).flatten().and_then(|f|crate::vfs::read_fd(&f,s.as_mut_ptr(),s.len()).ok().map(|n|n as i32)).unwrap_or(-9) }
-        IORING_OP_WRITE_FIXED   => { let s=unsafe{core::slice::from_raw_parts(buf as*const u8,len)}; crate::process::with_current(|p|p.get_fd(fd as u32)).flatten().and_then(|f|crate::vfs::write_fd(&f,s.as_ptr(),s.len()).ok().map(|n|n as i32)).unwrap_or(-9) }
+        IORING_OP_READ          => { if !crate::security::is_user_ptr_valid(buf, len) { return -14; } let s=unsafe{core::slice::from_raw_parts_mut(buf as*mut u8,len)}; crate::process::with_current(|p|p.get_fd(fd as u32)).flatten().and_then(|f|crate::vfs::read_fd(&f,s.as_mut_ptr(),s.len()).ok().map(|n|n as i32)).unwrap_or(-9) }
+        IORING_OP_WRITE         => { if !crate::security::is_user_ptr_valid(buf, len) { return -14; } let s=unsafe{core::slice::from_raw_parts(buf as*const u8,len)}; crate::process::with_current(|p|p.get_fd(fd as u32)).flatten().and_then(|f|crate::vfs::write_fd(&f,s.as_ptr(),s.len()).ok().map(|n|n as i32)).unwrap_or(-9) }
+        IORING_OP_READ_FIXED    => { if !crate::security::is_user_ptr_valid(buf, len) { return -14; } let s=unsafe{core::slice::from_raw_parts_mut(buf as*mut u8,len)}; crate::process::with_current(|p|p.get_fd(fd as u32)).flatten().and_then(|f|crate::vfs::read_fd(&f,s.as_mut_ptr(),s.len()).ok().map(|n|n as i32)).unwrap_or(-9) }
+        IORING_OP_WRITE_FIXED   => { if !crate::security::is_user_ptr_valid(buf, len) { return -14; } let s=unsafe{core::slice::from_raw_parts(buf as*const u8,len)}; crate::process::with_current(|p|p.get_fd(fd as u32)).flatten().and_then(|f|crate::vfs::write_fd(&f,s.as_ptr(),s.len()).ok().map(|n|n as i32)).unwrap_or(-9) }
         IORING_OP_READV         => sys_readv(fd, buf, len as usize) as i32,
         IORING_OP_WRITEV        => sys_writev(fd, buf, len as usize) as i32,
         IORING_OP_FSYNC         => sys_fsync(fd) as i32,
@@ -298,6 +298,7 @@ fn resolve_ring_fd(process_fd: i32) -> i32 {
 
 pub fn sys_io_uring_setup(entries: u32, params_ptr: u64) -> i64 {
     if params_ptr == 0 { return -22; }
+    if !crate::security::is_user_ptr_valid(params_ptr, core::mem::size_of::<IoUringParams>()) { return -14; }
     let params = unsafe { &mut *(params_ptr as *mut IoUringParams) };
     let flags  = params.flags;
     let cq_entries = if flags & IORING_SETUP_CQSIZE != 0 && params.cq_entries > entries {
@@ -340,6 +341,7 @@ pub fn sys_io_uring_register(fd: i32, opcode: u32, arg: u64, nr_args: u32) -> i6
     match opcode {
         IORING_REGISTER_PROBE => {
             if arg != 0 {
+                if !crate::security::is_user_ptr_valid(arg, 4 + 4 * IORING_OP_LAST as usize) { return -14; }
                 unsafe {
                     *(arg as *mut u32) = IORING_OP_LAST as u32;
                     let ops = (arg + 8) as *mut u32;
@@ -350,6 +352,7 @@ pub fn sys_io_uring_register(fd: i32, opcode: u32, arg: u64, nr_args: u32) -> i6
         }
         IORING_REGISTER_FILES => {
             if arg != 0 && nr_args > 0 {
+                if !crate::security::is_user_ptr_valid(arg, nr_args as usize * 4) { return -14; }
                 let fds = unsafe { core::slice::from_raw_parts(arg as *const i32, nr_args as usize) };
                 let mut g = RINGS.lock();
                 if let Some(r) = g.get_mut(&rid) {

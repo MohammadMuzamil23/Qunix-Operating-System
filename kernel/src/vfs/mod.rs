@@ -282,21 +282,26 @@ fn find_mount(abs: &str) -> Option<(Arc<Superblock>, String)> {
     })
 }
 
-fn abs_path(cwd: &str, path: &str) -> String {
+pub fn abs_path(cwd: &str, path: &str) -> String {
     // Per-process mount namespace root enforcement
     let ns_root = crate::process::with_current(|p| {
         if p.namespaces.mnt_ns == 0 { String::from("/") }
         else { crate::security::namespace::mnt_ns_root(p.namespaces.mnt_ns) }
     }).unwrap_or_else(|| String::from("/"));
 
+    // Chroot root
+    let chroot_root = crate::process::with_current(|p| p.get_root()).unwrap_or_else(|| String::from("/"));
+
+    let effective_root = if chroot_root == "/" { ns_root.clone() } else { chroot_root.clone() };
+
     let raw = if path.starts_with('/') {
-        if ns_root == "/" {
+        if effective_root == "/" {
             canonicalize(path)
         } else {
-            // Absolute path inside a non-root namespace: prepend namespace root
+            // Absolute path inside chroot: prepend chroot root
             let stripped = path.trim_start_matches('/');
-            if stripped.is_empty() { ns_root.clone() }
-            else { canonicalize(&alloc::format!("{}/{}", ns_root.trim_end_matches('/'), stripped)) }
+            if stripped.is_empty() { effective_root.clone() }
+            else { canonicalize(&alloc::format!("{}/{}", effective_root.trim_end_matches('/'), stripped)) }
         }
     } else {
         let base = if cwd.ends_with('/') {
@@ -307,10 +312,10 @@ fn abs_path(cwd: &str, path: &str) -> String {
         canonicalize(&base)
     };
 
-    // Security: ensure resolved path does not escape the namespace root
-    if ns_root != "/" && !raw.starts_with(&ns_root) {
-        // Path tried to escape (e.g. via ../../../../) — clamp to ns root
-        return ns_root;
+    // Security: ensure resolved path does not escape the effective root
+    if effective_root != "/" && !raw.starts_with(&effective_root) {
+        // Path tried to escape (e.g. via ../../../../) — clamp to effective root
+        return effective_root;
     }
     raw
 }
@@ -369,7 +374,7 @@ fn resolve_inode_inner(abs: &str, follow_last: bool, depth: usize) -> Result<Ino
     Ok(cur)
 }
 
-fn resolve_inode(cwd: &str, path: &str) -> Result<Inode, VfsError> {
+pub fn resolve_inode(cwd: &str, path: &str) -> Result<Inode, VfsError> {
     let abs = abs_path(cwd, path);
     resolve_inode_inner(&abs, true, 0)
 }

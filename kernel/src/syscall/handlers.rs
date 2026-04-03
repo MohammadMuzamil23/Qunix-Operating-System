@@ -1756,7 +1756,28 @@ pub fn sys_statx(dirfd: i32, path: u64, flags: i32, mask: u32, buf: u64) -> i64 
 // ── Additional handlers needed by the full dispatch table ─────────────────
 
 pub fn sys_flock(_fd: i32, _op: i32) -> i64 { 0 }
-pub fn sys_chroot(path: u64) -> i64 { 0 } // TODO: implement chroot jail
+pub fn sys_chroot(path: u64) -> i64 {
+    let pathname = match unsafe { read_cstr(path) } { Some(s) => s, None => return EFAULT };
+    // Resolve the path
+    let inode = match crate::process::with_current_mut(|p| {
+        let cwd = p.get_cwd();
+        crate::vfs::resolve_inode(&cwd, &pathname)
+    }) {
+        Some(Ok(i)) => i,
+        Some(Err(e)) => return e as i64,
+        None => return -14,
+    };
+    // Check if directory
+    if !crate::vfs::s_isdir(inode.mode) { return crate::vfs::ENOTDIR as i64; }
+    // Get the absolute path
+    let abs_path = crate::process::with_current(|p| {
+        let cwd = p.get_cwd();
+        crate::vfs::abs_path(&cwd, &pathname)
+    }).unwrap_or_else(|| String::from("/"));
+    // Set root
+    crate::process::with_current_mut(|p| p.set_root(abs_path));
+    0
+}
 pub fn sys_sethostname(name: u64, len: usize) -> i64 { 0 }
 pub fn sys_setdomainname(name: u64, len: usize) -> i64 { 0 }
 pub fn sys_reboot(magic1: i32, magic2: i32, cmd: i32, arg: u64) -> i64 {

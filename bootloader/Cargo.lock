@@ -63,7 +63,7 @@ dependencies = [
 
 [[package]]
 name = "qunix-bootloader"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "uefi 0.37.0",
  "uefi-services",

@@ -28,6 +28,7 @@ pub struct ThreadGroup {
     pub fds:      Mutex<BTreeMap<u32, FileDescriptor>>,
     pub next_fd:  Mutex<u32>,
     pub cwd:      Mutex<String>,
+    pub root:     Mutex<String>,  // chroot directory
     pub umask:    Mutex<u32>,
     pub sig_actions: Mutex<[SigAction; 32]>,
 }
@@ -39,7 +40,8 @@ impl ThreadGroup {
             tgid,
             fds:         Mutex::new(fds),
             next_fd:     Mutex::new(3),
-            cwd:         Mutex::new(cwd),
+            cwd:         Mutex::new(cwd.clone()),
+            root:        Mutex::new(cwd),
             umask:       Mutex::new(0o022),
             sig_actions: Mutex::new([SigAction::default(); 32]),
         })
@@ -116,6 +118,7 @@ pub struct Process {
     pub fds:          BTreeMap<u32, FileDescriptor>,
     pub next_fd:      u32,
     pub cwd:          String,
+    pub root:         String,  // chroot directory
     pub umask:        u32,
 
     // Credentials
@@ -166,7 +169,7 @@ impl Process {
             nice:     0, sleep_until: 0,
             address_space: AddressSpace::new_kernel(),
             fds: BTreeMap::new(), next_fd: 3,
-            cwd: String::from("/"), umask: 0o022,
+            cwd: String::from("/"), root: String::from("/"), umask: 0o022,
             uid:0, gid:0, euid:0, egid:0, suid:0, sgid:0, groups: Vec::new(),
             sig_pending: SignalSet::empty(), sig_mask: SignalSet::empty(),
             sig_actions: [SigAction::default(); 32],
@@ -244,6 +247,16 @@ impl Process {
     pub fn set_cwd(&mut self, cwd: String) {
         if let Some(tg) = &self.thread_group { *tg.cwd.lock() = cwd; }
         else { self.cwd = cwd; }
+    }
+
+    pub fn get_root(&self) -> String {
+        if let Some(tg) = &self.thread_group { tg.root.lock().clone() }
+        else { self.root.clone() }
+    }
+
+    pub fn set_root(&mut self, root: String) {
+        if let Some(tg) = &self.thread_group { *tg.root.lock() = root; }
+        else { self.root = root; }
     }
 
     pub fn get_sig_action(&self, sig: usize) -> SigAction {
@@ -402,6 +415,7 @@ pub fn fork_current() -> Option<Pid> {
         *tg.next_fd.lock()
     } else { parent.next_fd };
     let child_cwd = parent.get_cwd();
+    let child_root = parent.root.clone();
 
     let mut kstack = alloc::vec![0u8; KERNEL_STACK_SIZE];
     let kst = kstack.as_mut_ptr() as u64 + KERNEL_STACK_SIZE as u64;
@@ -455,7 +469,7 @@ pub fn fork_current() -> Option<Pid> {
         nice: parent.nice, sleep_until: 0,
         address_space: child_as,
         fds: child_fds, next_fd: child_next_fd,
-        cwd: child_cwd, umask: parent.umask,
+        cwd: child_cwd, root: child_root, umask: parent.umask,
         uid: parent.uid, gid: parent.gid,
         euid: parent.euid, egid: parent.egid,
         suid: parent.suid, sgid: parent.sgid,
@@ -574,6 +588,7 @@ pub fn clone_thread(
         fds: BTreeMap::new(),   // accessed via thread_group.fds
         next_fd: 0,             // accessed via thread_group.next_fd
         cwd: String::new(),     // accessed via thread_group.cwd
+        root: String::new(),    // accessed via thread_group.root
         umask: parent.umask,
         uid: parent.uid, gid: parent.gid,
         euid: parent.euid, egid: parent.egid,

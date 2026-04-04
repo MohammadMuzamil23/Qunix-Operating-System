@@ -78,9 +78,11 @@ pub extern "sysv64" fn kernel_main(boot_info_ptr: u64) -> ! {
 
     vfs::init();
     fs::init(boot_info);
+    crate::klog!("fs: init returned");
 
     process::init();
     sched::init();
+    crate::klog!("process/sched init returned");
 
     // syscall::init() // removed - no such fn
     signal::init();

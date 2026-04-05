@@ -145,18 +145,23 @@ fn install_boot_userland(boot_info: &BootInfo) {
     }
     if let Some(qshell) = phys_blob(boot_info.qshell_phys_start, boot_info.qshell_size) {
         crate::klog!("fs: installing qshell ({})", qshell.len());
-        write_file("/bin/qsh",    qshell);
-        write_file("/bin/qshell", qshell);
+        let written = write_file("/bin/qsh",    qshell);
+        crate::klog!("fs: /bin/qsh written {} bytes", written);
+        let written = write_file("/bin/qshell", qshell);
+        crate::klog!("fs: /bin/qshell written {} bytes", written);
         crate::klog!("fs: qshell installed");
     }
 }
 
-fn write_file(path: &str, data: &[u8]) {
+fn write_file(path: &str, data: &[u8]) -> usize {
     use crate::vfs::{O_CREAT, O_WRONLY, O_TRUNC};
     let cwd = alloc::string::String::from("/");
     match crate::vfs::open(&cwd, path, O_CREAT | O_WRONLY | O_TRUNC, 0o644) {
-        Ok(fd) => { let _ = fd.inode.ops.write(&fd.inode, data, 0); }
-        Err(_) => {}
+        Ok(fd) => match fd.inode.ops.write(&fd.inode, data, 0) {
+            Ok(n) => n,
+            Err(_) => 0,
+        },
+        Err(_) => 0,
     }
 }
 

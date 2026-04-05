@@ -37,6 +37,7 @@ check_deps() {
     command -v rustup >/dev/null || missing+=("rustup")
     command -v ld.lld >/dev/null || missing+=("lld (llvm-lld package)")
     command -v mtools >/dev/null || missing+=("mtools")
+    command -v fdisk >/dev/null || missing+=("fdisk (util-linux, used to create EFI disks)")
     command -v dd     >/dev/null || missing+=("dd (coreutils)")
     command -v qemu-system-x86_64 >/dev/null 2>&1 \
         || warn "qemu-system-x86_64 not found (needed for 'run' command)"
@@ -393,6 +394,12 @@ build_disk_image() {
     trap cleanup_build_disk_image RETURN
 
     mkdir -p "$BUILD_DIR"
+
+    if ! command -v fdisk >/dev/null 2>&1; then
+        error "Missing fdisk; cannot create EFI partition table."
+        error "Install util-linux (sudo apt-get install util-linux) and rerun ./build.sh"
+        exit 1
+    fi
 
     if command -v truncate >/dev/null 2>&1; then
         truncate -s "${DISK_SZ_MB}M" "$DISK_IMG"

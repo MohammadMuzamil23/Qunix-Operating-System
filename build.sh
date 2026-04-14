@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Qunix OS Build System v5.0
 # Usage: ./build.sh [bin|iso|run|clean|kernel|userland|plugins|check|help]
+
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

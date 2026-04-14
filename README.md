@@ -200,4 +200,4 @@ send_signal(pid, sig)
 
 ## License
 
-Qunix Operating System is licensed under the terms of MIT licence.
+Qunix Operating System is licensed under the terms of Apache licence 2.0.

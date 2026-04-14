@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# ============================================================
 #  Qunix ASCII Logo — pixel-by-pixel animated reveal
 #  Requires: Python3 (pre-installed on most Linux/macOS)
-# ============================================================
 
 python3 - "$@" << 'PYTHON_SCRIPT'
 import sys, os, time, signal, random

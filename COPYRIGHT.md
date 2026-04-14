@@ -2,7 +2,7 @@
 
 Copyright (c) 2026 Mohammad Muzamil
 
-QunixOS is an operating system written in Rust and developed by Mohammad Muzamil.
+QunixOS is an operating system written in Rust and developed by Mohammad Muzamil and contributors.
 
 ## License
 

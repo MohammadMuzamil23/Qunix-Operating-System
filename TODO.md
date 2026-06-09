@@ -46,3 +46,35 @@ This TODO list focuses on the OS features and implementations that are currently
 - Add POSIX compliance tests for filesystem, signals, timers, and syscall behavior.
 - Add regression tests for newly implemented device drivers and security subsystems.
 - Validate userland utility behavior against standard Unix expectations.
+
+## TODO with File References
+- `kernel/src/syscall/handlers.rs`
+  - `sys_fchdir`, `sys_link`, `sys_chmod`, `sys_fchmod`, `sys_fchmodat`, `sys_chown`, `sys_fchown`, `sys_lchown`, `sys_fchownat`
+  - `sys_alarm`, `sys_setitimer`, `sys_getitimer`, `sys_timer_create`, `sys_timer_settime`, `sys_timer_gettime`, `sys_timer_delete`
+  - `sys_inotify_init1`, `sys_inotify_add_watch`, `sys_inotify_rm_watch`
+  - `sys_io_uring_setup`, `sys_io_uring_enter`, `sys_io_uring_register`
+  - `sys_pidfd_open`, `sys_landlock_create_ruleset`, `sys_init_module`, `sys_delete_module`
+- `kernel/src/syscall/mod.rs`
+  - audit `sys_unimplemented` dispatch path and ensure missing syscalls return `ENOSYS` correctly
+- `kernel/src/abi_compat/abi/mod.rs`
+  - fill VDSO page with `vdso_clock_gettime` trampoline
+- `kernel/src/drm/mod.rs`
+  - deliver vblank events to FD event queue for DRM page flips
+- `kernel/src/drivers/pcie/mod.rs`
+  - implement AHCI SATA device support
+- `kernel/src/drivers/block.rs`
+  - implement `total_blocks()` for block devices
+- `kernel/src/fs/fat32/mod.rs`
+  - remove stubbed `SuperblockOps` return of `ENOSYS` and complete FAT32 root inode handling
+- `kernel/src/security/memory_tagging.rs`
+  - complete MTE support or document intentional lack of support
+- `kernel/src/security/mod.rs`
+  - stabilize seccomp/MAC policy support and namespace enforcement
+- `userland/sed/src/main.rs`
+  - complete `sed` commands: `n`, `N`, `r`, `w`, plus other scripted commands
+- `userland/qshell/src/main.rs`
+  - finish unimplemented shell builtins and command support
+- `README.md`, `doc/overview.md`, `doc/changelog.md`
+  - align documentation with actual implemented features and limitations
+- test files or new test modules
+  - add POSIX compatibility tests for filesystem, signals, timers, userland utilities, and newly implemented drivers/security subsystems
